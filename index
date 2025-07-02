@@ -1,0 +1,428 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía Interactiva de Salud Vegetal</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chosen Palette: Warm Harmony -->
+    <!-- Application Structure Plan: The application is structured as a single-page interactive dashboard. A primary top navigation allows users to select one of six key environmental factors (Luz, Temperatura, Humedad, Agua, Ventilación, Nutrientes). Selecting a factor dynamically displays a dedicated content section. Each section features an interactive toggle (e.g., 'Deficiencia' vs. 'Exceso') that updates a display of symptom cards. This design prioritizes rapid, comparative diagnosis over linear reading of the source report. A 'Saber Más' button in each section reveals detailed physiological information in a modal, keeping the main interface clean and user-focused. The 'Nutrientes' section uses a unique interactive plant diagram to visually explain nutrient mobility, a core concept. This structure was chosen to transform the dense report into a practical, user-driven diagnostic tool, directly addressing the goal of helping users identify plant problems. -->
+    <!-- Visualization & Content Choices: Report Info: Symptoms of environmental stress (excess/deficiency for light, temp, etc.) -> Goal: Allow easy comparison and diagnosis -> Viz/Presentation: Interactive content cards that dynamically change based on a 'Deficiency'/'Excess' toggle. Interaction: User clicks toggle to switch views. Justification: This is more engaging and efficient for comparison than static side-by-side tables. | Report Info: Nutrient deficiency/toxicity symptoms and mobility -> Goal: Explain where symptoms appear based on nutrient mobility -> Viz/Presentation: An interactive plant diagram (HTML/CSS) linked to nutrient selection buttons. Interaction: User clicks a nutrient, the diagram highlights the affected plant area (old/new leaves), and a card shows details. Justification: This visually demonstrates the abstract concept of mobility, making it easier to understand and diagnose. Library/Method: Vanilla JavaScript for all interactions and dynamic content. No charts (Chart.js/Plotly) are needed as the data is qualitative. -->
+    <!-- CONFIRMATION: NO SVG graphics used. NO Mermaid JS used. -->
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        .nav-button {
+            transition: all 0.3s ease;
+        }
+        .nav-button.active {
+            background-color: #556B2F; /* DarkOliveGreen */
+            color: #F5F5DC; /* Beige */
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .content-section {
+            display: none;
+        }
+        .content-section.active {
+            display: block;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        .toggle-btn {
+            transition: all 0.3s ease;
+            border: 2px solid transparent;
+        }
+        .toggle-btn.active {
+            background-color: #8FBC8F; /* DarkSeaGreen */
+            color: #2F4F4F; /* DarkSlateGray */
+            border-color: #556B2F;
+        }
+        .symptom-card {
+            background-color: #FFFFFF;
+            border-left: 5px solid #8FBC8F;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+        .symptom-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -2px rgb(0 0 0 / 0.1);
+        }
+        .modal {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        .modal.active {
+            display: flex;
+        }
+        .nutrient-list button.active {
+            background-color: #8FBC8F;
+            color: white;
+        }
+        .plant-diagram .plant-part {
+            transition: all 0.3s ease;
+            cursor: default;
+        }
+        .plant-diagram .highlight {
+            transform: scale(1.1);
+            filter: drop-shadow(0 0 8px #FFD700);
+        }
+    </style>
+</head>
+<body class="bg-[#F5F5DC] text-[#2F4F4F]">
+
+    <div id="app" class="container mx-auto p-4 md:p-8 max-w-7xl">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-[#556B2F]">Guía Interactiva de Salud Vegetal</h1>
+            <p class="mt-2 text-lg text-[#4A4A4A]">Una herramienta para entender y diagnosticar los problemas de tus plantas.</p>
+        </header>
+
+        <nav id="main-nav" class="flex flex-wrap justify-center gap-2 md:gap-4 mb-8">
+        </nav>
+
+        <main id="main-content">
+        </main>
+
+        <div id="modal" class="modal fixed inset-0 bg-black bg-opacity-60 items-center justify-center p-4">
+            <div class="bg-[#F5F5DC] rounded-lg shadow-2xl p-6 md:p-8 max-w-3xl w-full max-h-[90vh] overflow-y-auto relative">
+                <h2 id="modal-title" class="text-2xl font-bold text-[#556B2F] mb-4"></h2>
+                <div id="modal-body" class="text-[#4A4A4A] space-y-4"></div>
+                <button id="modal-close" class="absolute top-4 right-4 text-2xl font-bold text-[#2F4F4F] hover:text-red-500 transition">&times;</button>
+            </div>
+        </div>
+
+    </div>
+
+    <script>
+        const appData = {
+            luz: {
+                title: "Luz: Energía y Señalización",
+                intro: "La luz es la fuente de energía primaria para la fotosíntesis y una señal clave que regula el crecimiento y desarrollo de la planta (fotomorfogénesis). Su exceso o deficiencia impacta directamente en la salud y apariencia de tu planta.",
+                fisiologia: `
+                    <h3 class="font-bold text-lg text-[#556B2F]">Fotosíntesis y Fotomorfogénesis</h3>
+                    <p>La fotosíntesis convierte la energía lumínica en energía química (glucosa). La luz también regula la forma de la planta, la germinación y la floración a través de fotorreceptores como el fitocromo y el criptocromo. Estos pigmentos le 'dicen' a la planta cuándo crecer, cuándo florecer y cómo orientarse.</p>
+                    <h3 class="font-bold text-lg text-[#556B2F] mt-2">Fotoperiodismo</h3>
+                    <p>Las plantas miden la duración del día y la noche para sincronizar su floración. Las plantas de 'día corto' florecen con noches largas, mientras que las de 'día largo' necesitan noches cortas. Las de 'día neutro' florecen independientemente de la duración de la luz.</p>
+                `,
+                sintomas: {
+                    exceso: [
+                        { icon: '☀️', title: 'Decoloración y Quemaduras', text: 'Hojas amarillas, blancas o con manchas marrones secas. Pueden adquirir tonos rojizos.' },
+                        { icon: '🍃', title: 'Hojas Curvadas', text: 'Las hojas se curvan hacia arriba ("tacoing") o hacia abajo para reducir la exposición.' },
+                        { icon: '📉', title: 'Crecimiento Atrofiado', text: 'La planta crece lenta o se detiene, desviando energía para reparar daños.' },
+                        { icon: '🌸', title: 'Flores de Baja Calidad', text: 'Flores blanqueadas, quemadas y con menor producción de aromas.' }
+                    ],
+                    deficiencia: [
+                        { icon: '🌱', title: 'Etiolación (Estiramiento)', text: 'Tallos largos, delgados y débiles que se estiran buscando luz.' },
+                        { icon: '🍂', title: 'Hojas Pequeñas y Amarillentas', text: 'Hojas nuevas pequeñas; las viejas amarillean y caen. Pérdida de coloración en plantas no verdes.' },
+                        { icon: '🚫', title: 'Falta de Floración', text: 'Producción de flores y frutos muy limitada o ausente por falta de energía.' },
+                        { icon: '🧭', title: 'Crecimiento Inclinado', text: 'La planta se inclina visiblemente hacia la fuente de luz más cercana.' }
+                    ]
+                }
+            },
+            temperatura: {
+                title: "Temperatura: Regulador Metabólico",
+                intro: "La temperatura regula la velocidad de las reacciones químicas en la planta, incluyendo la fotosíntesis, la respiración y la absorción de nutrientes. Cada planta tiene un rango de temperatura óptimo para prosperar.",
+                 fisiologia: `
+                    <h3 class="font-bold text-lg text-[#556B2F]">Impacto Metabólico</h3>
+                    <p>Las enzimas que controlan el metabolismo son muy sensibles a la temperatura. Temperaturas altas aceleran la respiración (consumo de energía) y pueden reducir la fotosíntesis neta. Bajas temperaturas ralentizan todos los procesos, incluida la absorción de nutrientes y agua, que se vuelve más viscosa.</p>
+                    <h3 class="font-bold text-lg text-[#556B2F] mt-2">Crecimiento de Órganos</h3>
+                    <p>La temperatura del suelo es crítica para el desarrollo de las raíces. Raíces frías absorben mal el agua y los nutrientes, causando estrés hídrico en la parte aérea aunque el sustrato esté húmedo. El crecimiento de tallos, hojas y frutos también depende de rangos térmicos específicos.</p>
+                `,
+                sintomas: {
+                    exceso: [
+                        { icon: '🥵', title: 'Hojas Curvadas y Quemadas', text: 'Se curvan hacia arriba, con manchas y bordes marrones secos. Blanqueamiento en la parte superior.' },
+                        { icon: '⏳', title: 'Crecimiento Retardado', text: 'El crecimiento general se ralentiza o se atrofia.' },
+                        { icon: '🥀', title: 'Anomalías en Floración', text: 'Deformaciones como "foxtailing" (flores que crecen sobre otras) y pérdida de calidad.' },
+                        { icon: '💧', title: 'Marchitamiento', text: 'La planta transpira más rápido de lo que puede absorber agua, causando marchitez.' }
+                    ],
+                    deficiencia: [
+                        { icon: '🥶', title: 'Amarillamiento y Marchitez', text: 'Síntomas de daño por frío (chilling). La planta envejece prematuramente.' },
+                        { icon: '🧊', title: 'Daño por Congelación', text: 'Tejido con aspecto mojado o translúcido que luego se vuelve marrón. Daño irreversible.' },
+                        { icon: '🍎', title: 'Daño en Frutos', text: 'Manchas en la piel (picado, escaldado), pardeamiento interno y malos sabores.' },
+                        { icon: '📉', title: 'Absorción Deficiente', text: 'Las raíces frías no absorben bien agua y nutrientes, causando síntomas de deficiencia.' }
+                    ]
+                }
+            },
+            humedad: {
+                title: "Humedad Ambiental: Equilibrio Hídrico",
+                intro: "La humedad relativa del aire influye directamente en la transpiración de la planta (pérdida de agua por las hojas). Un desequilibrio puede causar deshidratación o favorecer la aparición de enfermedades.",
+                fisiologia: `
+                    <h3 class="font-bold text-lg text-[#556B2F]">Transpiración y Estomas</h3>
+                    <p>Las plantas 'respiran' a través de poros llamados estomas. La transpiración es la evaporación de agua a través de ellos, lo que crea una succión que arrastra agua y nutrientes desde las raíces. Una humedad ambiental baja acelera la transpiración, mientras que una humedad alta la frena.</p>
+                    <h3 class="font-bold text-lg text-[#556B2F] mt-2">Intercambio Gaseoso y Salud</h3>
+                    <p>Un equilibrio en la transpiración es vital. Si es muy baja (alta humedad), se reduce la absorción de nutrientes. Si es muy alta (baja humedad), la planta puede deshidratarse. El aire estancado y la alta humedad crean un microclima ideal para hongos y enfermedades.</p>
+                `,
+                sintomas: {
+                    exceso: [
+                        { icon: '💧', title: 'Crecimiento Débil y Hojas Caídas', text: 'Las hojas caen sin motivo aparente y la planta luce lacia. Puede haber deficiencias de nutrientes.' },
+                        { icon: '🍄', title: 'Enfermedades Fúngicas', text: 'Aparición de moho (blanco o gris) en hojas, tallos o sustrato.' },
+                        { icon: '🫧', title: 'Edema', text: 'Ampollas acuosas o manchas en el envés de las hojas, que se vuelven quebradizas.' },
+                        { icon: '🦟', title: 'Moscas del Sustrato', text: 'El ambiente húmedo y encharcado favorece la proliferación de plagas.' }
+                    ],
+                    deficiencia: [
+                        { icon: '🍂', title: 'Hojas Secas y Quebradizas', text: 'Puntas y bordes marrones, aspecto seco y crujiente.' },
+                        { icon: '🥀', title: 'Marchitamiento Rápido', text: 'La planta pierde agua más rápido de lo que la absorbe, provocando que se marchite.' },
+                        { icon: '🐜', title: 'Aumento de Plagas', text: 'Condiciones secas favorecen a plagas como la arañuela roja.' },
+                        { icon: '📉', title: 'Crecimiento Atrofiado', text: 'Hojas pequeñas y crecimiento lento debido a la deshidratación constante.' }
+                    ]
+                }
+            },
+            agua: {
+                title: "Agua y Sustrato: El Dúo Vital",
+                intro: "El riego es crucial, pero un error común es dar demasiada o muy poca agua. El problema no es solo la cantidad de agua, sino también la cantidad de oxígeno disponible para las raíces, lo cual depende del sustrato.",
+                fisiologia: `
+                    <h3 class="font-bold text-lg text-[#556B2F]">Absorción y Transporte</h3>
+                    <p>Las raíces absorben agua y nutrientes disueltos por ósmosis. Este 'caldo' (savia bruta) asciende por el xilema gracias a la tensión creada por la transpiración en las hojas. Es un sistema continuo e interdependiente.</p>
+                    <h3 class="font-bold text-lg text-[#556B2F] mt-2">Hipoxia Radicular (Exceso de Agua)</h3>
+                    <p>El síntoma más engañoso es la marchitez por exceso de riego. Cuando el sustrato se encharca, el agua desplaza al oxígeno. Sin oxígeno (hipoxia), las raíces no pueden respirar, su función de absorción falla y se pudren. La planta se marchita porque, aunque está en agua, no puede absorberla.</p>
+                `,
+                sintomas: {
+                    exceso: [
+                        { icon: '🟡', title: 'Hojas Amarillas y Blandas', text: 'Las hojas, especialmente las inferiores, amarillean y caen sin estar secas. Se sienten blandas al tacto.' },
+                        { icon: '🥀', title: 'Marchitamiento General', text: 'La planta entera se ve caída y lacia, incluso con el sustrato húmedo. Es el síntoma más confuso.' },
+                        { icon: '🤢', title: 'Pudrición de Raíces', text: 'Raíces oscuras, blandas y con mal olor. El sustrato huele a humedad o podrido.' },
+                        { icon: '🌿', title: 'Crecimiento Detenido y Débil', text: 'La planta deja de crecer y se debilita progresivamente.' }
+                    ],
+                    deficiencia: [
+                        { icon: '🍂', title: 'Hojas Marchitas y Secas', text: 'Las hojas se ven caídas, lacias y con el tiempo se vuelven secas y crujientes.' },
+                        { icon: '🪴', title: 'Sustrato Compacto y Separado', text: 'La tierra se seca tanto que se contrae y se separa de los bordes de la maceta.' },
+                        { icon: '📉', title: 'Crecimiento Lento', text: 'Las hojas nuevas son más pequeñas y el crecimiento general es muy lento.' },
+                        { icon: '🟤', title: 'Puntas y Bordes Marrones', text: 'Las puntas y los bordes de las hojas se secan y se vuelven marrones.' }
+                    ]
+                }
+            },
+            ventilacion: {
+                title: "Ventilación: El Flujo de Aire",
+                intro: "Un buen flujo de aire es vital. Renueva el dióxido de carbono (CO2) necesario para la fotosíntesis, ayuda a controlar la temperatura y la humedad, y previene la acumulación de patógenos.",
+                fisiologia: `
+                    <h3 class="font-bold text-lg text-[#556B2F]">Intercambio Gaseoso y Capa Límite</h3>
+                    <p>La ventilación renueva el aire alrededor de las hojas, asegurando un suministro constante de CO2. También rompe la 'capa límite', una fina película de aire húmedo y estancado que se forma sobre la superficie de la hoja. Romperla ayuda a regular la transpiración y la temperatura foliar.</p>
+                    <h3 class="font-bold text-lg text-[#556B2F] mt-2">Prevención de Enfermedades</h3>
+                    <p>El aire estancado crea bolsas de alta humedad, el ambiente perfecto para que esporas de hongos germinen. Una buena circulación de aire seca la superficie de las hojas y el sustrato, dificultando la proliferación de moho y otras enfermedades.</p>
+                `,
+                sintomas: {
+                    exceso: [
+                        { icon: '🌬️', title: 'Hojas en Forma de Garra', text: 'Las hojas se curvan hacia abajo por el estrés mecánico constante del viento.' },
+                        { icon: '🟤', title: 'Manchas y Quemaduras por Viento', text: 'Aparecen manchas de color bronce o marrón en las hojas expuestas a corrientes fuertes.' },
+                        { icon: '📉', title: 'Crecimiento Atrofiado', text: 'La planta desvía energía para reparar el daño físico en lugar de crecer.' },
+                        { icon: '💔', title: 'Daño Físico', text: 'Ramas rotas o tallos doblados debido a corrientes de aire muy intensas.' }
+                    ],
+                    deficiencia: [
+                        { icon: '🍄', title: 'Moho y Hongos', text: 'Crecimiento de moho blanco o grisáceo sobre las hojas o el sustrato.' },
+                        { icon: '🦟', title: 'Proliferación de Plagas', text: 'El aire estancado es ideal para insectos como la mosca del sustrato, pulgones y mosca blanca.' },
+                        { icon: '🌱', title: 'Crecimiento Débil y Lento', text: 'La falta de CO2 y la alta humedad ralentizan la fotosíntesis y el crecimiento.' },
+                        { icon: '♨️', title: 'Calor y Humedad Estancados', text: 'Se crean "bolsas" de aire caliente y húmedo que estresan a la planta.' }
+                    ]
+                }
+            },
+            nutrientes: {
+                title: "Nutrientes: Bloques de Construcción",
+                intro: "Las plantas necesitan un menú balanceado de macro y micronutrientes. La clave para diagnosticar deficiencias es observar DÓNDE aparecen los síntomas primero: en hojas viejas (nutrientes móviles) o en hojas nuevas (nutrientes inmóviles).",
+                fisiologia: `
+                    <h3 class="font-bold text-lg text-[#556B2F]">Movilidad de Nutrientes</h3>
+                    <p>Este es el concepto más importante. Los <strong>nutrientes móviles</strong> (como Nitrógeno, Fósforo, Potasio) pueden ser transportados por la planta desde las hojas viejas hacia las nuevas cuando hay escasez. Por eso, los síntomas de su deficiencia aparecen primero en las hojas de abajo.</p>
+                    <p>Los <strong>nutrientes inmóviles</strong> (como Calcio, Azufre, Hierro, Boro) no pueden moverse una vez que han sido depositados en un tejido. Si faltan, los nuevos brotes y las hojas jóvenes no pueden obtenerlos de las partes viejas, y son los primeros en mostrar síntomas.</p>
+                    <h3 class="font-bold text-lg text-[#556B2F] mt-2">Importancia del pH</h3>
+                    <p>A veces, el nutriente está en el sustrato, pero la planta no puede absorberlo porque el pH del suelo es incorrecto. Un pH inadecuado 'bloquea' la disponibilidad de ciertos nutrientes. Por eso, antes de fertilizar, es bueno considerar el pH.</p>
+                `,
+                list: {
+                    N: { name: "Nitrógeno (N)", mobility: "Móvil", part: 'old-leaves', deficiencia: 'Hojas inferiores se vuelven amarillas de manera uniforme. Crecimiento general lento y débil.', toxicidad: 'Follaje excesivamente oscuro y débil, poca floración. Tallos quebradizos.' },
+                    P: { name: "Fósforo (P)", mobility: "Móvil", part: 'old-leaves', deficiencia: 'Hojas viejas de color verde oscuro, con tonos púrpuras o rojizos. Crecimiento atrofiado.', toxicidad: 'Rara. Puede bloquear la absorción de Zinc y Cobre.' },
+                    K: { name: "Potasio (K)", mobility: "Móvil", part: 'old-leaves', deficiencia: 'Bordes y puntas de las hojas viejas se queman (se ven marrones y secos).', toxicidad: 'Puede bloquear la absorción de Magnesio y Calcio.' },
+                    Mg: { name: "Magnesio (Mg)", mobility: "Móvil", part: 'old-leaves', deficiencia: 'Amarillamiento entre las venas (venas verdes, tejido amarillo) en hojas viejas.', toxicidad: 'Rara. Un exceso puede bloquear la absorción de Calcio.' },
+                    Ca: { name: "Calcio (Ca)", mobility: "Inmóvil", part: 'new-leaves', deficiencia: 'Hojas nuevas y brotes deformados, retorcidos o muertos. Pudrición apical en frutos.', toxicidad: 'Crecimiento atrofiado, puede bloquear la absorción de Potasio.' },
+                    S: { name: "Azufre (S)", mobility: "Inmóvil", part: 'new-leaves', deficiencia: 'Amarillamiento generalizado de las hojas más jóvenes, similar a la deficiencia de Nitrógeno pero en la parte superior.', toxicidad: 'Poco común. Crecimiento reducido y hojas más pequeñas.' },
+                    Fe: { name: "Hierro (Fe)", mobility: "Inmóvil", part: 'new-leaves', deficiencia: 'Fuerte amarillamiento entre las venas en las hojas más nuevas (venas muy verdes sobre fondo amarillo pálido).', toxicidad: 'Manchas necróticas de color bronce o marrón en las hojas.' },
+                    B: { name: "Boro (B)", mobility: "Inmóvil", part: 'new-leaves', deficiencia: 'Puntas de crecimiento (brotes) muertas o quebradizas. Hojas nuevas deformadas.', toxicidad: 'Amarillamiento y quemaduras en las puntas de las hojas, progresando hacia la base.' }
+                }
+            }
+        };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            const mainNav = document.getElementById('main-nav');
+            const mainContent = document.getElementById('main-content');
+            const modal = document.getElementById('modal');
+            const modalTitle = document.getElementById('modal-title');
+            const modalBody = document.getElementById('modal-body');
+            const modalClose = document.getElementById('modal-close');
+
+            const sections = Object.keys(appData);
+
+            sections.forEach(key => {
+                const data = appData[key];
+                const navButton = document.createElement('button');
+                navButton.className = 'nav-button py-2 px-4 rounded-lg font-semibold bg-white bg-opacity-50 hover:bg-[#8FBC8F] hover:text-white';
+                navButton.textContent = data.title.split(':')[0];
+                navButton.dataset.section = key;
+                mainNav.appendChild(navButton);
+                
+                if (key === 'nutrientes') {
+                    mainContent.appendChild(createNutrientSection(key, data));
+                } else {
+                    mainContent.appendChild(createStandardSection(key, data));
+                }
+            });
+
+            function createStandardSection(key, data) {
+                const section = document.createElement('section');
+                section.id = `section-${key}`;
+                section.className = 'content-section bg-[#FEFBF3] p-6 rounded-xl shadow-lg';
+                section.innerHTML = `
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <h2 class="text-3xl font-bold text-[#556B2F]">${data.title}</h2>
+                            <p class="mt-2 text-[#4A4A4A] max-w-2xl">${data.intro}</p>
+                        </div>
+                        <button class="show-fisiologia-btn text-sm font-semibold text-[#556B2F] hover:underline" data-key="${key}">Saber más</button>
+                    </div>
+                    <div class="flex justify-center gap-4 mb-6">
+                        <button class="toggle-btn stress-toggle py-2 px-6 rounded-md font-bold" data-key="${key}" data-type="deficiencia">Deficiencia</button>
+                        <button class="toggle-btn stress-toggle py-2 px-6 rounded-md font-bold" data-key="${key}" data-type="exceso">Exceso</button>
+                    </div>
+                    <div id="symptoms-grid-${key}" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    </div>
+                `;
+                return section;
+            }
+
+            function createNutrientSection(key, data) {
+                 const section = document.createElement('section');
+                section.id = `section-${key}`;
+                section.className = 'content-section bg-[#FEFBF3] p-6 rounded-xl shadow-lg';
+                
+                const nutrientButtons = Object.keys(data.list).map(nKey => 
+                    `<button class="nutrient-btn py-2 px-3 rounded-md font-semibold bg-white hover:bg-[#8FBC8F] hover:text-white transition" data-nutrient="${nKey}">${data.list[nKey].name}</button>`
+                ).join('');
+
+                section.innerHTML = `
+                    <div class="flex justify-between items-start mb-6">
+                        <div>
+                            <h2 class="text-3xl font-bold text-[#556B2F]">${data.title}</h2>
+                            <p class="mt-2 text-[#4A4A4A] max-w-2xl">${data.intro}</p>
+                        </div>
+                        <button class="show-fisiologia-btn text-sm font-semibold text-[#556B2F] hover:underline" data-key="${key}">Saber más</button>
+                    </div>
+                    <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                        <div class="lg:col-span-1 flex flex-col items-center justify-center">
+                            <h3 class="text-xl font-bold mb-4 text-center">Diagrama de la Planta</h3>
+                             <div class="plant-diagram w-48 h-80 relative">
+                                <div id="plant-new-leaves" class="plant-part absolute top-0 left-1/2 -translate-x-1/2 w-24 h-24 bg-green-500 rounded-full" style="clip-path: ellipse(50% 40% at 50% 50%);"></div>
+                                <div class="plant-part absolute top-20 left-1/2 -translate-x-1/2 w-4 h-48 bg-green-700"></div>
+                                <div id="plant-old-leaves" class="plant-part absolute top-24 left-1/2 -translate-x-1/2 w-32 h-32 bg-green-600 rounded-full" style="clip-path: ellipse(50% 40% at 50% 60%);"></div>
+                                <div class="absolute bottom-0 left-1/2 -translate-x-1/2 w-40 h-8 bg-yellow-900 rounded-t-lg"></div>
+                                <p class="absolute -top-2 left-1/2 -translate-x-1/2 text-xs font-bold text-white bg-black/50 px-2 py-1 rounded">Hojas Nuevas</p>
+                                <p class="absolute top-40 left-1/2 -translate-x-1/2 text-xs font-bold text-white bg-black/50 px-2 py-1 rounded">Hojas Viejas</p>
+                            </div>
+                        </div>
+                        <div class="lg:col-span-2">
+                             <div class="nutrient-list flex flex-wrap justify-center gap-2 mb-4">${nutrientButtons}</div>
+                             <div id="nutrient-info" class="mt-4 p-4 bg-white rounded-lg shadow-inner min-h-[200px]">
+                                <p class="text-center text-gray-500">Selecciona un nutriente para ver sus detalles.</p>
+                             </div>
+                        </div>
+                    </div>
+                `;
+                return section;
+            }
+
+            function updateSymptoms(key, type) {
+                const grid = document.getElementById(`symptoms-grid-${key}`);
+                const symptoms = appData[key].sintomas[type];
+                grid.innerHTML = symptoms.map(symptom => `
+                    <div class="symptom-card p-4 rounded-lg shadow-md">
+                        <div class="flex items-center gap-4">
+                            <span class="text-3xl">${symptom.icon}</span>
+                            <div>
+                                <h4 class="font-bold text-lg text-[#556B2F]">${symptom.title}</h4>
+                                <p class="text-sm text-[#4A4A4A]">${symptom.text}</p>
+                            </div>
+                        </div>
+                    </div>
+                `).join('');
+            }
+            
+            function showNutrientInfo(nutrientKey) {
+                const infoContainer = document.getElementById('nutrient-info');
+                const nutrient = appData.nutrientes.list[nutrientKey];
+                
+                infoContainer.innerHTML = `
+                    <h3 class="text-xl font-bold text-[#556B2F]">${nutrient.name}</h3>
+                    <p class="text-sm font-semibold ${nutrient.mobility === 'Móvil' ? 'text-blue-600' : 'text-red-600'}">${nutrient.mobility}</p>
+                    <div class="mt-4 space-y-3">
+                        <div>
+                           <h4 class="font-bold">Síntomas de Deficiencia:</h4>
+                           <p class="text-[#4A4A4A]">${nutrient.deficiencia}</p>
+                        </div>
+                        <div>
+                           <h4 class="font-bold">Síntomas de Toxicidad:</h4>
+                           <p class="text-[#4A4A4A]">${nutrient.toxicidad}</p>
+                        </div>
+                    </div>
+                `;
+                
+                document.querySelectorAll('.plant-diagram .plant-part').forEach(p => p.classList.remove('highlight'));
+                if (nutrient.part === 'old-leaves') {
+                    document.getElementById('plant-old-leaves').classList.add('highlight');
+                } else if(nutrient.part === 'new-leaves') {
+                    document.getElementById('plant-new-leaves').classList.add('highlight');
+                }
+            }
+
+            mainNav.addEventListener('click', (e) => {
+                if (e.target.matches('.nav-button')) {
+                    const sectionKey = e.target.dataset.section;
+                    
+                    document.querySelectorAll('.nav-button').forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+
+                    document.querySelectorAll('.content-section').forEach(sec => sec.classList.remove('active'));
+                    document.getElementById(`section-${sectionKey}`).classList.add('active');
+                    
+                    if(sectionKey !== 'nutrientes') {
+                        const defaultToggle = document.querySelector(`.stress-toggle[data-key="${sectionKey}"][data-type="deficiencia"]`);
+                        defaultToggle.click();
+                    } else {
+                         const defaultNutrient = document.querySelector('.nutrient-btn');
+                         if(defaultNutrient) defaultNutrient.click();
+                    }
+                }
+            });
+
+            mainContent.addEventListener('click', (e) => {
+                if (e.target.matches('.stress-toggle')) {
+                    const key = e.target.dataset.key;
+                    const type = e.target.dataset.type;
+                    document.querySelectorAll(`.stress-toggle[data-key="${key}"]`).forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+                    updateSymptoms(key, type);
+                }
+                
+                if (e.target.matches('.show-fisiologia-btn')) {
+                    const key = e.target.dataset.key;
+                    modalTitle.textContent = appData[key].title;
+                    modalBody.innerHTML = appData[key].fisiologia;
+                    modal.classList.add('active');
+                }
+
+                if (e.target.matches('.nutrient-btn')) {
+                    const nutrientKey = e.target.dataset.nutrient;
+                    document.querySelectorAll('.nutrient-btn').forEach(btn => btn.classList.remove('active'));
+                    e.target.classList.add('active');
+                    showNutrientInfo(nutrientKey);
+                }
+            });
+
+            modalClose.addEventListener('click', () => modal.classList.remove('active'));
+            modal.addEventListener('click', (e) => {
+                if (e.target === modal) {
+                    modal.classList.remove('active');
+                }
+            });
+            
+            document.querySelector('.nav-button').click();
+        });
+    </script>
+</body>
+</html>
