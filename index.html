@@ -74,12 +74,10 @@
 <body class="bg-[#F5F5DC] text-[#2F4F4F]">
 
     <div id="app" class="container mx-auto p-4 md:p-8 max-w-7xl">
-         <header class="bg-gradient-to-r from-sky-700 via-cyan-600 to-teal-500 text-white py-16 shadow-xl">
-    <div class="container mx-auto max-w-5xl text-center px-4">
-      <h1 class="text-4xl md:text-5xl font-extrabold mb-4 drop-shadow-lg">Laboratorio Interactivo de Cinemática</h1>
-      <p class="text-lg md:text-xl text-cyan-100">Explora, Calcula y Comprende el Movimiento Vertical</p>
-    </div>
-  </header>
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-[#556B2F]">Guía Interactiva de Salud Vegetal</h1>
+            <p class="mt-2 text-lg text-[#4A4A4A]">Una herramienta para entender y diagnosticar los problemas de tus plantas.</p>
+        </header>
 
         <nav id="main-nav" class="flex flex-wrap justify-center gap-2 md:gap-4 mb-8">
         </nav>
@@ -112,14 +110,14 @@
                     exceso: [
                         { icon: '☀️', title: 'Decoloración y Quemaduras', text: 'Hojas amarillas, blancas o con manchas marrones secas. Pueden adquirir tonos rojizos.' },
                         { icon: '🍃', title: 'Hojas Curvadas', text: 'Las hojas se curvan hacia arriba ("tacoing") o hacia abajo para reducir la exposición.' },
-                        { icon: '🤕', title: 'Crecimiento Atrofiado', text: 'La planta crece lenta o se detiene, desviando energía para reparar daños.' },
+                        { icon: '📉', title: 'Crecimiento Atrofiado', text: 'La planta crece lenta o se detiene, desviando energía para reparar daños.' },
                         { icon: '🌸', title: 'Flores de Baja Calidad', text: 'Flores blanqueadas, quemadas y con menor producción de aromas.' }
                     ],
                     deficiencia: [
                         { icon: '🌱', title: 'Etiolación (Estiramiento)', text: 'Tallos largos, delgados y débiles que se estiran buscando luz.' },
                         { icon: '🍂', title: 'Hojas Pequeñas y Amarillentas', text: 'Hojas nuevas pequeñas; las viejas amarillean y caen. Pérdida de coloración en plantas no verdes.' },
-                        { icon: '🏵️', title: 'Falta de Floración', text: 'Producción de flores y frutos muy limitada o ausente por falta de energía.' },
-                        { icon: '🌿', title: 'Crecimiento Inclinado', text: 'La planta se inclina visiblemente hacia la fuente de luz más cercana.' }
+                        { icon: '🚫', title: 'Falta de Floración', text: 'Producción de flores y frutos muy limitada o ausente por falta de energía.' },
+                        { icon: '🧭', title: 'Crecimiento Inclinado', text: 'La planta se inclina visiblemente hacia la fuente de luz más cercana.' }
                     ]
                 }
             },
@@ -221,16 +219,16 @@
             },
             nutrientes: {
                 title: "Nutrientes: Bloques de Construcción",
-                intro: "Las plantas necesitan una disponibilidad balanceada de macro y micronutrientes. La clave para diagnosticar deficiencias es observar dónde aparecen los síntomas primero: en hojas viejas (nutrientes móviles) o en hojas nuevas (nutrientes inmóviles).",
+                intro: "Las plantas necesitan un menú balanceado de macro y micronutrientes. La clave para diagnosticar deficiencias es observar DÓNDE aparecen los síntomas primero: en hojas viejas (nutrientes móviles) o en hojas nuevas (nutrientes inmóviles).",
                 fisiologia: `
                     <h3 class="font-bold text-lg text-[#556B2F]">Movilidad de Nutrientes</h3>
-                    <p>Este es el concepto más importante. Los <strong>nutrientes móviles</strong> (como Nitrógeno, Fósforo, Potasio) pueden ser transportados por la planta desde las hojas viejas hacia las nuevas cuando hay escasez. Por eso, los síntomas de su deficiencia aparecen primero en las hojas viejas, fácilmente las podemos reconocer porque están más abajo de las ramas y troncos.</p>
-                    <p>Los <strong>nutrientes inmóviles</strong> (como Calcio, Azufre, Hierro, Boro) no pueden moverse una vez que han sido depositados en un tejido. Si faltan, los nuevos brotes y las hojas jóvenes no pueden obtenerlos de las partes viejas, solo se transportan por el xilema desde las raíces y son los primeros en mostrar síntomas.</p>
+                    <p>Este es el concepto más importante. Los <strong>nutrientes móviles</strong> (como Nitrógeno, Fósforo, Potasio) pueden ser transportados por la planta desde las hojas viejas hacia las nuevas cuando hay escasez. Por eso, los síntomas de su deficiencia aparecen primero en las hojas de abajo.</p>
+                    <p>Los <strong>nutrientes inmóviles</strong> (como Calcio, Azufre, Hierro, Boro) no pueden moverse una vez que han sido depositados en un tejido. Si faltan, los nuevos brotes y las hojas jóvenes no pueden obtenerlos de las partes viejas, y son los primeros en mostrar síntomas.</p>
                     <h3 class="font-bold text-lg text-[#556B2F] mt-2">Importancia del pH</h3>
-                    <p>A veces, el nutriente está en el sustrato, pero la planta no puede absorberlo porque el pH del suelo es incorrecto. Un pH inadecuado 'bloquea' la disponibilidad de ciertos nutrientes. Por eso, antes de fertilizar, es bueno considerar el pH. Muchas de las plantas que tenemos en el hogar no suelen tener problemas con el pH, pero si, niveles muy extremos de acidez o alcalinidad pueden afectar la abserción de nutrientes.</p>
+                    <p>A veces, el nutriente está en el sustrato, pero la planta no puede absorberlo porque el pH del suelo es incorrecto. Un pH inadecuado 'bloquea' la disponibilidad de ciertos nutrientes. Por eso, antes de fertilizar, es bueno considerar el pH.</p>
                 `,
                 list: {
-                    N: { name: "Nitrógeno (N)", mobility: "Móvil", part: 'old-leaves', deficiencia: 'Hojas inferiores se vuelven amarillas de manera uniforme. Crecimiento general lento y débil.', toxicidad: 'Follaje excesivamente oscuro y débil, poca floración. Tallos frágiles y quebradizos.' },
+                    N: { name: "Nitrógeno (N)", mobility: "Móvil", part: 'old-leaves', deficiencia: 'Hojas inferiores se vuelven amarillas de manera uniforme. Crecimiento general lento y débil.', toxicidad: 'Follaje excesivamente oscuro y débil, poca floración. Tallos quebradizos.' },
                     P: { name: "Fósforo (P)", mobility: "Móvil", part: 'old-leaves', deficiencia: 'Hojas viejas de color verde oscuro, con tonos púrpuras o rojizos. Crecimiento atrofiado.', toxicidad: 'Rara. Puede bloquear la absorción de Zinc y Cobre.' },
                     K: { name: "Potasio (K)", mobility: "Móvil", part: 'old-leaves', deficiencia: 'Bordes y puntas de las hojas viejas se queman (se ven marrones y secos).', toxicidad: 'Puede bloquear la absorción de Magnesio y Calcio.' },
                     Mg: { name: "Magnesio (Mg)", mobility: "Móvil", part: 'old-leaves', deficiencia: 'Amarillamiento entre las venas (venas verdes, tejido amarillo) en hojas viejas.', toxicidad: 'Rara. Un exceso puede bloquear la absorción de Calcio.' },
